@@ -1,0 +1,23 @@
+﻿
+@model Calculator.Model.MainModel
+
+
+
+@using (Html.BeginForm("Calculate", "Calculator", FormMethod.Post))
+{
+    @Html.TextBoxFor(m => m.Input)
+
+    <input type="submit" name="Sign" value="+" />
+    <input type="submit" name="Sign" value="-" />
+    <input type="submit" name="Sign" value="*" />
+    <input type="submit" name="Sign" value="/" />
+    <input type="submit" name="Sign" value="=" />
+    @Html.HiddenFor(m => m.Result)
+    @Html.HiddenFor(m => m.Calculation)
+}
+@if (Model != null)
+{
+    <p>Calculation: @Model.Calculation</p>
+
+    <p>Result is: @Model.Result</p>
+}
