@@ -30,7 +30,8 @@ namespace Calculator
             {
                 app.UseDeveloperExceptionPage();
             }
-
+            app.UseDefaultFiles();
+            app.UseStaticFiles();
             app.UseSession();
             app.UseMvc(routes =>
             {

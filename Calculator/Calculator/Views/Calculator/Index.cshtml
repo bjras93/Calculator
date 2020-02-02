@@ -1,23 +1,24 @@
 ﻿
 @model Calculator.Model.MainModel
-
-
-
+<link href="~/Assets/main.css" rel="stylesheet" />
 @using (Html.BeginForm("Calculate", "Calculator", FormMethod.Post))
 {
-    @Html.TextBoxFor(m => m.Input)
-
-    <input type="submit" name="Sign" value="+" />
-    <input type="submit" name="Sign" value="-" />
-    <input type="submit" name="Sign" value="*" />
-    <input type="submit" name="Sign" value="/" />
-    <input type="submit" name="Sign" value="=" />
+<div class="calc-con">
+    @Html.TextBoxFor(m => m.Input, null, new { @class = "calc-input", @type = "number" })
+    <input type="submit" class="calc-button" name="Sign" value="+" />
+    <input type="submit" class="calc-button" name="Sign" value="-" />
+    <input type="submit" class="calc-button" name="Sign" value="*" />
+    <input type="submit" class="calc-button" name="Sign" value="/" />
+    <input type="submit" class="calc-button" name="Sign" value="=" />
+    <input type="submit" class="calc-button" name="Sign" value="C" />
+</div>
     @Html.HiddenFor(m => m.Result)
     @Html.HiddenFor(m => m.Calculation)
 }
-@if (Model != null)
-{
-    <p>Calculation: @Model.Calculation</p>
-
-    <p>Result is: @Model.Result</p>
-}
+<br />
+<div>
+    @if (Model != null)
+    {
+        <p>Calculation: @Model.Calculation</p>
+    }
+</div>

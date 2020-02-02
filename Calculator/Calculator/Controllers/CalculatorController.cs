@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
-using System;
 using System.Collections.Generic;
 
 namespace Calculator.Controllers
@@ -20,110 +19,102 @@ namespace Calculator.Controllers
             return View();
         }
         [HttpPost]
-        public IActionResult Calculate(MainModel calculator)
+        public IActionResult Calculate(MainModel mainModel)
         {
-            calculator.Numbers = new List<int>();
-            calculator.Signs = new List<string>();
-            calculator = SerializationShizzle(calculator);
-            if (calculator.Input == "0" && calculator.Signs.Contains("/"))
+            mainModel.Numbers = new List<int>();
+            mainModel.Signs = new List<string>();
+
+
+            if (mainModel.Input == 0 && mainModel.Signs.Contains("/"))
             {
                 return Redirect("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
             }
-            calculator = calculator.Numbers.Count > 1 ? CalculateValues(calculator) : calculator;
+            mainModel = GetCurrentCalculator(mainModel);
+            if (mainModel.Input != null)
+            {
+                mainModel = CalculateValues(mainModel);
+            }
+            if (mainModel.Sign == "C")
+            {
+                HttpContext.Session.Clear();
+                return View("Index", null);
+            }
 
-            calculator.Input = "";
+            SetCurrentCalculator(mainModel);
 
-            calculator = GenerateCalculationString(calculator);
-
-            return View("Index", calculator);
+            mainModel = GenerateCalculationString(mainModel);
+            mainModel.Input = null;
+            ModelState.Clear();
+            return View("Index", mainModel);
         }
         private MainModel CalculateValues(MainModel mainModel)
         {
-
-            var firstValue = mainModel.Numbers[0];
-            if (mainModel.Result != null && mainModel.Numbers.Count > 2)
+            var sign = mainModel.Sign == "=" ? mainModel.Signs[mainModel.Signs.Count - 2] : mainModel.Sign;
+            if (mainModel.Result == null)
             {
-                firstValue = Convert.ToInt32(mainModel.Result);
+                mainModel.Result = mainModel.Input;
+                SetCurrentCalculator(mainModel);
+                return mainModel;
             }
-            var secondValue = mainModel.Numbers[mainModel.Numbers.Count - 1];
-            var sign = mainModel.Signs[mainModel.Signs.Count - 2];
-            string serializedCalculator;
             switch (sign)
             {
                 case "+":
-                    mainModel.Result = firstValue + secondValue;
-                    serializedCalculator = JsonConvert.SerializeObject(mainModel);
-                    HttpContext.Session.SetString("calculator", serializedCalculator);
-                    return mainModel;
+                    mainModel.Result += mainModel.Input;
+                    break;
                 case "-":
-                    mainModel.Result = firstValue - secondValue;
-                    serializedCalculator = JsonConvert.SerializeObject(mainModel);
-                    HttpContext.Session.SetString("calculator", serializedCalculator);
-                    return mainModel;
+                    mainModel.Result -= mainModel.Input;
+                    break;
                 case "/":
-                    mainModel.Result = firstValue / secondValue;
-                    serializedCalculator = JsonConvert.SerializeObject(mainModel);
-                    HttpContext.Session.SetString("calculator", serializedCalculator);
-                    return mainModel;
+                    mainModel.Result /= mainModel.Input;
+                    break;
                 case "*":
-                    mainModel.Result = firstValue * secondValue;
-                    serializedCalculator = JsonConvert.SerializeObject(mainModel);
-                    HttpContext.Session.SetString("calculator", serializedCalculator);
-                    return mainModel;
+                    mainModel.Result *= mainModel.Input;
+                    break;
                 default:
-                    serializedCalculator = JsonConvert.SerializeObject(mainModel);
-                    HttpContext.Session.SetString("calculator", serializedCalculator);
-                    return mainModel;
+                    break;
             }
+            SetCurrentCalculator(mainModel);
+            return mainModel;
         }
         private MainModel GenerateCalculationString(MainModel mainModel)
         {
-            var index = mainModel.Signs.Count - 1;
-            if (mainModel.Signs[mainModel.Signs.Count - 1] == "=")
+            if (mainModel.Sign == "=")
             {
-                if (mainModel.Numbers.Count == 2)
-                {
-                    mainModel.Calculation += mainModel.Numbers[index];
-                }
-                mainModel.Calculation += " " + mainModel.Signs[index] + " " + mainModel.Result;
+                mainModel.Calculation += $" {mainModel.Input} {mainModel.Sign} {mainModel.Result} ";
+            }
+            else if (mainModel.Signs.Count > 1 && mainModel.Signs[mainModel.Signs.Count - 2] == "=")
+            {
+                mainModel.Calculation += $" {mainModel.Sign} {mainModel.Input} ";
             }
             else
             {
-                if (mainModel.Numbers.Count > 1)
-                {
-                    mainModel.Calculation += " " + mainModel.Signs[index] + " " + mainModel.Numbers[index] + " ";
-                }
-                else
-                {
-                    mainModel.Calculation += mainModel.Numbers[index] + " " + mainModel.Signs[index] + " ";
-                }
+                mainModel.Calculation += $" {mainModel.Input} {mainModel.Sign} ";
             }
-            string serializedCalculator;
-            serializedCalculator = JsonConvert.SerializeObject(mainModel);
-            HttpContext.Session.SetString("calculator", serializedCalculator);
+
+            SetCurrentCalculator(mainModel);
             return mainModel;
         }
-        private MainModel SerializationShizzle(MainModel calculator)
+        private MainModel GetCurrentCalculator(MainModel mainModel)
         {
-            var calculatorFromSession = HttpContext.Session.GetString("calculator");
-            string serializedCalculator;
-            if (calculatorFromSession != null)
-            {
-                var existingCalculator = JsonConvert.DeserializeObject<MainModel>(calculatorFromSession);
-                existingCalculator.Numbers.Add(int.Parse(calculator.Input));
-                existingCalculator.Signs.Add(calculator.Sign);
-                existingCalculator.Sign = calculator.Sign;
-                existingCalculator.Input = calculator.Input;
-                serializedCalculator = JsonConvert.SerializeObject(existingCalculator);
-                HttpContext.Session.SetString("calculator", serializedCalculator);
-                return existingCalculator;
-            }
-            calculator.Numbers.Add(int.Parse(calculator.Input));
-            calculator.Signs.Add(calculator.Sign);
-            serializedCalculator = JsonConvert.SerializeObject(calculator);
-            HttpContext.Session.SetString("calculator", serializedCalculator);
-            return calculator;
+            var mainModelFromSession = HttpContext.Session.GetString("mainModel");
 
+            if (mainModelFromSession != null)
+            {
+                var lastMainModel = JsonConvert.DeserializeObject<MainModel>(mainModelFromSession);
+
+                lastMainModel.Input = mainModel.Input;
+                lastMainModel.Sign = mainModel.Sign;
+                mainModel = lastMainModel;
+            }
+            mainModel.Numbers.Add(mainModel.Input.GetValueOrDefault());
+            mainModel.Signs.Add(mainModel.Sign);
+            return mainModel;
         }
+        private void SetCurrentCalculator(MainModel mainModel)
+        {
+            var serialized = JsonConvert.SerializeObject(mainModel);
+            HttpContext.Session.SetString("mainModel", serialized);
+        }
+
     }
 }
